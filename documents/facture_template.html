@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facture</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            padding: 40px;
+            background: #f5f5f5;
+        }
+
+        .invoice-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--primary-color);
+        }
+
+        .invoice-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .invoice-number {
+            font-size: 18px;
+            color: #666;
+        }
+
+        .invoice-dates {
+            text-align: right;
+        }
+
+        .date-row {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .date-row strong {
+            color: var(--primary-color);
+        }
+
+        .parties {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+        }
+
+        .party-box {
+            width: 48%;
+        }
+
+        .party-label {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .party-details {
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid var(--primary-color);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .items-section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        thead {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        th:last-child {
+            text-align: right;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        td {
+            padding: 12px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        td:last-child {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .totals {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 40px;
+        }
+
+        .totals-box {
+            width: 300px;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            font-size: 14px;
+        }
+
+        .total-row.subtotal {
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .total-row.final {
+            border-top: 2px solid var(--primary-color);
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary-color);
+            padding-top: 15px;
+            margin-top: 10px;
+        }
+
+        .payment-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .payment-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .payment-details {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .payment-label {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .payment-value {
+            color: #333;
+        }
+
+        .footer {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid #e0e0e0;
+            color: #666;
+            font-size: 12px;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+                background: white;
+            }
+
+            .invoice-container {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <!-- En-tête -->
+        <div class="header">
+            <div>
+                <div class="invoice-title">FACTURE</div>
+                <div class="invoice-number">N° <span id="facture_numero"></span></div>
+            </div>
+            <div class="invoice-dates">
+                <div class="date-row">
+                    <strong>Date d'émission :</strong> <span id="date_emission"></span>
+                </div>
+                <div class="date-row">
+                    <strong>Date d'échéance :</strong> <span id="date_echeance"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Parties -->
+        <div class="parties">
+            <div class="party-box">
+                <div class="party-label">Émetteur</div>
+                <div class="party-details" id="emetteur"></div>
+            </div>
+            <div class="party-box">
+                <div class="party-label">Client</div>
+                <div class="party-details" id="client"></div>
+            </div>
+        </div>
+
+        <!-- Détails des prestations -->
+        <div class="items-section">
+            <div class="section-title">Détail des prestations</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">Description</th>
+                        <th style="width: 15%;">Quantité</th>
+                        <th style="width: 15%;">Prix unitaire HT</th>
+                        <th style="width: 15%;">TVA</th>
+                        <th style="width: 15%;">Total HT</th>
+                    </tr>
+                </thead>
+                <tbody id="prestations">
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Totaux -->
+        <div class="totals">
+            <div class="totals-box">
+                <div class="total-row subtotal">
+                    <span>Total HT</span>
+                    <span id="total_ht"></span>
+                </div>
+                <div class="total-row">
+                    <span>TVA</span>
+                    <span id="tva"></span>
+                </div>
+                <div class="total-row final">
+                    <span>TOTAL TTC</span>
+                    <span id="total_ttc"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations de paiement -->
+        <div class="payment-section">
+            <div class="payment-title">Informations de paiement</div>
+            <div class="payment-details">
+                <div class="payment-label">Méthode :</div>
+                <div class="payment-value" id="methode_paiement"></div>
+
+                <div class="payment-label">Titulaire :</div>
+                <div class="payment-value" id="titulaire_compte"></div>
+
+                <div class="payment-label">Banque :</div>
+                <div class="payment-value" id="banque"></div>
+
+                <div class="payment-label">BIC :</div>
+                <div class="payment-value" id="bic"></div>
+
+                <div class="payment-label">IBAN :</div>
+                <div class="payment-value" id="iban"></div>
+            </div>
+        </div>
+
+        <!-- Pied de page -->
+        <div class="footer">
+            <p>Merci pour votre confiance</p>
+        </div>
+    </div>
+</body>
+</html>
