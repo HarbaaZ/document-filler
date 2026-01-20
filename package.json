@@ -15,7 +15,8 @@
     "next": "16.1.4",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.4.530",
-    "puppeteer": "^23.10.4",
+    "puppeteer-core": "^23.10.4",
+    "@sparticuz/chromium": "^131.0.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-pdf": "^10.3.0"

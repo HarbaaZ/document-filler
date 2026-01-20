@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { JSDOM } from 'jsdom';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 
 interface FillHtmlRequest {
   templateName: string;
@@ -149,9 +150,22 @@ export async function POST(request: NextRequest) {
     const filledHtml = dom.serialize();
 
     // Convertir en PDF avec Puppeteer
+    // Configuration pour Netlify (serverless)
+    // Détecter si on est dans un environnement serverless (Netlify, Vercel, etc.)
+    const isServerless = process.env.NETLIFY === 'true' || 
+                        process.env.VERCEL === '1' || 
+                        process.env.NODE_ENV === 'production';
+
+    const executablePath = isServerless 
+      ? await chromium.executablePath()
+      : undefined;
+
     const browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      executablePath,
+      args: isServerless 
+        ? chromium.args
+        : ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
     const page = await browser.newPage();
