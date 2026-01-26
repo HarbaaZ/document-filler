@@ -157,17 +157,23 @@ export async function POST(request: NextRequest) {
                         process.env.VERCEL === '1' || 
                         process.env.NODE_ENV === 'production';
 
-    const executablePath = isServerless 
-      ? await chromium.executablePath()
-      : undefined;
-
-    const browser = await puppeteer.launch({
+    // En local, utiliser le channel 'chrome' pour trouver Chrome automatiquement
+    // En production, utiliser chromium depuis @sparticuz/chromium
+    const launchOptions: any = {
       headless: true,
-      executablePath,
       args: isServerless 
         ? chromium.args
         : ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+    };
+
+    if (isServerless) {
+      launchOptions.executablePath = await chromium.executablePath();
+    } else {
+      // En local, utiliser le channel 'chrome' pour trouver Chrome installé
+      launchOptions.channel = 'chrome';
+    }
+
+    const browser = await puppeteer.launch(launchOptions);
 
     const page = await browser.newPage();
     await page.setContent(filledHtml, { waitUntil: 'networkidle0' });
