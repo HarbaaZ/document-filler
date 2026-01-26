@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { readFile } from 'fs/promises';
-import path from 'path';
-import { JSDOM } from 'jsdom';
-import puppeteer from 'puppeteer-core';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import chromium from '@sparticuz/chromium';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { readFile } from 'fs/promises';
+import { JSDOM } from 'jsdom';
+import { NextRequest, NextResponse } from 'next/server';
+import path from 'path';
+import puppeteer from 'puppeteer-core';
 
 interface FillHtmlRequest {
   templateName: string;
