@@ -4,6 +4,7 @@ import path from 'path';
 import { JSDOM } from 'jsdom';
 import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 interface FillHtmlRequest {
   templateName: string;
@@ -184,15 +185,71 @@ export async function POST(request: NextRequest) {
 
     await browser.close();
 
-    // Retourner le PDF
+    // Uploader le PDF dans Cloudflare R2
     const templateNameWithoutExt = templateName.replace('.html', '');
-    return new NextResponse(Buffer.from(pdfBuffer), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="facture_${templateNameWithoutExt}.pdf"`,
+    const timestamp = Date.now();
+    const fileName = `factures/${templateNameWithoutExt}_${timestamp}.pdf`;
+    
+    // Configuration du client S3 pour R2
+    const s3Client = new S3Client({
+      region: 'auto',
+      endpoint: process.env.R2_ENDPOINT || `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
       },
     });
+
+    // Upload du PDF dans R2
+    try {
+      const uploadCommand = new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME || '',
+        Key: fileName,
+        Body: Buffer.from(pdfBuffer),
+        ContentType: 'application/pdf',
+      });
+
+      await s3Client.send(uploadCommand);
+
+      // Construire l'URL publique du PDF
+      // R2 nécessite soit un domaine personnalisé, soit un Worker pour exposer les fichiers publiquement
+      // Si R2_PUBLIC_URL est défini, utilisez-le (domaine personnalisé ou Worker)
+      // Sinon, utilisez l'URL publique R2 si disponible (format: https://pub-xxxxx.r2.dev)
+      let publicUrl: string;
+      
+      if (process.env.R2_PUBLIC_URL) {
+        // Domaine personnalisé ou Worker URL
+        publicUrl = process.env.R2_PUBLIC_URL.endsWith('/')
+          ? `${process.env.R2_PUBLIC_URL}${fileName}`
+          : `${process.env.R2_PUBLIC_URL}/${fileName}`;
+      } else if (process.env.R2_PUBLIC_DOMAIN) {
+        // URL publique R2 directe (format: pub-xxxxx.r2.dev)
+        publicUrl = `https://${process.env.R2_PUBLIC_DOMAIN}/${fileName}`;
+      } else {
+        // Fallback: retourner le chemin relatif (nécessitera un Worker pour accéder)
+        publicUrl = fileName;
+      }
+
+      // Retourner l'URL du PDF
+      return NextResponse.json({
+        success: true,
+        pdfUrl: publicUrl,
+        fileName: fileName,
+        message: 'PDF généré et uploadé avec succès',
+      }, {
+        status: 200,
+      });
+    } catch (uploadError) {
+      console.error('Erreur lors de l\'upload vers R2:', uploadError);
+      // En cas d'erreur d'upload, retourner quand même le PDF en binaire
+      return new NextResponse(Buffer.from(pdfBuffer), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="facture_${templateNameWithoutExt}.pdf"`,
+        },
+      });
+    }
 
   } catch (error) {
     console.error('Erreur lors du remplissage du HTML:', error);
